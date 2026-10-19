@@ -1,0 +1,16 @@
+[
+  {
+    "name": "Lâmpada de exemplo",
+    "id": "SUBSTITUA_PELO_DEVICE_ID",
+    "key": "SUBSTITUA_PELA_LOCAL_KEY",
+    "ip": "192.0.2.10",
+    "version": "3.4"
+  },
+  {
+    "name": "Outra lâmpada de exemplo",
+    "id": "SUBSTITUA_PELO_DEVICE_ID",
+    "key": "SUBSTITUA_PELA_LOCAL_KEY",
+    "ip": "192.0.2.11",
+    "version": "3.5"
+  }
+]
