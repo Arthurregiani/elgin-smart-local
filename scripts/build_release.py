@@ -33,8 +33,17 @@ def licenses(dest, env):
             continue
         name = f'{pkg["name"]}-{pkg["version"]}'
         lines.append(f'- {name}: {pkg.get("license") or "See included license file"}')
+        source = pkg.get('source')
+        if source and source.startswith('git+'):
+            lines.append(f'  Source: {source[4:]}')
+        elif source and source.startswith('registry+'):
+            lines.append(f'  Source: https://crates.io/crates/{pkg["name"]}/{pkg["version"]}')
         root = Path(pkg['manifest_path']).parent
         candidates = list(root.glob('LICENSE*')) + list(root.glob('COPYING*')) + list(root.glob('NOTICE*'))
+        if not candidates and source and source.startswith('git+'):
+            for parent in root.parents:
+                candidates = list(parent.glob('LICENSE*')) + list(parent.glob('COPYING*'))
+                if candidates or (parent / '.git').exists():break
         if pkg.get('license_file'):
             candidates.append(root / pkg['license_file'])
         for path in set(candidates):
