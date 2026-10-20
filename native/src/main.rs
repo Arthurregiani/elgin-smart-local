@@ -70,14 +70,17 @@ struct App {
     smoke: bool,
 }
 fn base() -> PathBuf {
-    std::env::var_os("ELGIN_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| {
-            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .parent()
-                .unwrap()
-                .to_path_buf()
-        })
+    if let Some(path) = std::env::var_os("ELGIN_HOME") {
+        return PathBuf::from(path);
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        for path in exe.ancestors().skip(1) {
+            if path.join("bridge/worker.py").is_file() {
+                return path.to_path_buf();
+            }
+        }
+    }
+    PathBuf::from("/usr/lib/elgin-smart-local")
 }
 #[derive(Clone, Debug)]
 struct Flags;
@@ -199,6 +202,9 @@ impl cosmic::Application for App {
                 return cosmic::iced::exit();
             }
             Message::HelperEnded => {
+                if self.devices.is_empty() {
+                    return Task::none();
+                }
                 self.notice = "Comunicação encerrada. Reabra o aplicativo para reconectar.".into();
                 for d in &mut self.devices {
                     d.status = "Desconectada".into();

@@ -1,79 +1,115 @@
-# Elgin Smart Local — COSMIC
+# Elgin Smart Local
 
-Aplicativo desktop nativo Rust/libcosmic para lâmpadas Elgin Smart Color A70, via TinyTuya na LAN. Sem navegador, HTTP, Docker, Home Assistant ou daemon. Abre pelo launcher **Elgin Smart Local**.
+Aplicativo desktop nativo para controlar lâmpadas **Elgin Smart Color A70** pela rede local, com interface **COSMIC**, Rust/libcosmic e TinyTuya. Brilho, saturação e tonalidade têm controles independentes, com a resolução nativa dos dispositivos compatíveis.
 
-## Instalar / atualizar
+**[Baixar a versão para Pop!_OS 24.04](https://github.com/Arthurregiani/elgin-smart-local/releases/latest)** · [Instalação e configuração](docs/INSTALL.md) · [Arquitetura](docs/TECHNICAL.md)
+
+## Recursos
+
+- Seleção individual ou múltipla de lâmpadas.
+- Roda de tonalidade, campos numéricos e entrada RGB/hexadecimal.
+- Brilho colorido e saturação em passos de **0,1%**, Hue em passos de **1°**.
+- Modo branco com brilho e temperatura independentes; preservação dos ajustes de cada modo.
+- Liga/desliga separado dos valores de cor e brilho.
+- Presets locais e indicação de conexão, sincronização e divergências.
+- Consolidação de comandos durante o movimento dos sliders e leitura do estado após alterações.
+
+A comunicação de iluminação acontece diretamente na LAN. Não exige navegador, Docker, Home Assistant, servidor HTTP ou serviço permanente. O auxiliar TinyTuya é iniciado com a janela e encerrado junto com o aplicativo.
+
+## Compatibilidade
+
+| Item | Suporte nesta versão |
+| --- | --- |
+| Sistema dos pacotes compilados | Pop!_OS 24.04 com COSMIC |
+| Arquitetura | amd64 / x86-64 |
+| Python do sistema | 3.12 |
+| Dispositivos validados | Elgin Smart Color A70, protocolos Tuya 3.4 e 3.5 |
+| Esquema de iluminação | DPS 20–24; HSV no formato `HHHHSSSSVVVV` |
+
+Outros modelos e firmwares podem ter limites ou mapeamentos diferentes e não estão validados. Os pacotes não são destinados a ARM nem a versões anteriores do Pop!_OS.
+
+## Instalação rápida
+
+Baixe o arquivo `.deb` na página de [releases](https://github.com/Arthurregiani/elgin-smart-local/releases/latest) e execute na pasta do download:
 
 ```bash
+sudo apt install ./elgin-smart-local_1.0.0_amd64.deb
+```
+
+O pacote contém o aplicativo compilado, TinyTuya e suas dependências Python. **Não é necessário instalar Rust, criar um ambiente virtual ou executar pip.** O apt pode obter bibliotecas do sistema que estejam faltando.
+
+Para instalar somente no usuário, sem sudo, use o `.tar.gz` da mesma release. Instruções e verificação dos checksums estão no [guia de instalação](docs/INSTALL.md).
+
+## Configurar as lâmpadas
+
+Nenhum pacote inclui dispositivos reais ou credenciais. Antes de usar, crie uma configuração privada:
+
+```bash
+mkdir -p ~/.config/elgin-smart-local
+chmod 700 ~/.config/elgin-smart-local
+cp /usr/share/doc/elgin-smart-local/devices.example.json \
+   ~/.config/elgin-smart-local/devices.json
+chmod 600 ~/.config/elgin-smart-local/devices.json
+```
+
+Edite o arquivo com o nome, Device ID, IP local, Local Key e versão do protocolo de cada lâmpada. O modelo contém apenas valores fictícios. A versão do protocolo deve corresponder ao dispositivo, por exemplo `3.4` ou `3.5`.
+
+Os IDs e Local Keys precisam estar disponíveis antes do uso. O aplicativo não faz pareamento nem extrai chaves. Consulte o [projeto TinyTuya](https://github.com/jasonacox/tinytuya) para orientações de obtenção dos dados. Mantenha o computador e as lâmpadas em uma rede que permita comunicação entre eles.
+
+Depois, abra **Elgin Smart Local** no launcher do COSMIC. Para a instalação por usuário, o modelo e os caminhos estão descritos no [guia](docs/INSTALL.md#instalação-por-usuário-targz).
+
+## Precisão e comportamento dos controles
+
+| Controle | Comportamento nos dispositivos validados |
+| --- | --- |
+| Brilho colorido | V=0–1000, equivalente a 0–100%; menor valor positivo V=1 (0,1%) |
+| Saturação | S=0–1000; S=0 produz uma cor dessaturada sem modificar V |
+| Tonalidade | H=0–360; alterar Hue preserva S e V |
+| Brilho branco | DPS22=10–1000; mínimo de 1,0%, em passos de 0,1% |
+| Temperatura | DPS23=0–1000, exibido como quente → frio; sem conversão calibrada para kelvin |
+
+No branco, **0% desliga** e o último brilho permanece guardado; valores positivos abaixo de 1% são normalizados para o mínimo suportado. No colorido, **V=0 é enviado literalmente** e não equivale ao comando liga/desliga. Ajustar valores não liga automaticamente uma lâmpada desligada.
+
+Pressione **Enter** para confirmar um campo numérico. RGB/HEX define H, S e V juntos; use o anel ou o campo Hue quando quiser preservar saturação e brilho. Em seleção múltipla, os valores exibidos vêm da primeira lâmpada selecionada com estado conhecido, mas os outros componentes de cada lâmpada são preservados em alterações isoladas.
+
+**Aguardando confirmação** não significa que o ajuste foi aplicado. O cartão de cada lâmpada mostra o estado retornado. Use **Sincronizar estado real** para reler os dispositivos; esse botão não repete escritas que falharam.
+
+A validação confirma valores retornados pelo firmware, não luminosidade medida. Não há garantia de que cada passo numérico produza uma diferença perceptível, de linearidade luminosa ou de fidelidade colorimétrica. A prévia RGB é aproximada. Veja os [resultados e limitações](docs/VALIDATION.md).
+
+## Privacidade
+
+- Credenciais ficam no arquivo local de configuração, fora do controle de versão.
+- Local Keys não são enviadas à interface, aos presets ou aos logs do aplicativo.
+- Releases incluem apenas código, executável, dependências, ícone, documentação e configuração de exemplo fictícia.
+- O aplicativo não altera firmware, pareamento, conta Tuya, integração Google Home, cenas ou temporizadores.
+- Controladores externos podem alterar o estado; o aplicativo relê os dispositivos periodicamente e antes das alterações.
+
+## Compilar a partir do código
+
+São necessários Rust **1.93 ou superior**, Cargo, Python 3.12/venv e as dependências de desenvolvimento do libcosmic para Linux. Em Pop!_OS 24.04:
+
+```bash
+sudo apt install build-essential pkg-config libxkbcommon-dev libwayland-dev python3-venv
 git clone https://github.com/Arthurregiani/elgin-smart-local.git
 cd elgin-smart-local
-cp devices.example.json devices.json
-# Edite devices.json localmente com seus IDs, IPs, versões e Local Keys.
-chmod 600 devices.json
 ./scripts/install.sh
 ```
 
-Se você já usa a instalação original em `~/AI/elgin-smart`, basta executar `./scripts/install.sh` nesse diretório; preserve seu `devices.json`. O exemplo contém somente valores fictícios.
+Configure as lâmpadas no caminho XDG descrito acima. O instalador de fontes compila o executável e mantém uma referência ao ambiente virtual do checkout; conserve esse diretório. A release compilada oferece instalação independente do checkout.
 
-Requer Rust/Cargo, Python 3 com venv e as bibliotecas de desenvolvimento Wayland/XKB do sistema. O instalador não usa sudo. Compila a versão fixada de libcosmic e instala executável, ícone e `.desktop` em `~/.local`. Reutiliza `.venv` e mantém um link para o `devices.json` original; conserve o diretório do projeto. TinyTuya é fixado em 1.20.0. O ambiente existente de FastAPI é preservado, mas não é iniciado pelo aplicativo.
-
-Executar diretamente:
-
-```bash
-~/.local/bin/elgin-smart-local
-```
-
-## Usar
-
-1. Selecione uma ou mais lâmpadas. A interface só habilita controles após conhecer o estado de ao menos uma selecionada. Dispositivos sem estado conhecido são ignorados até reconectar.
-2. Escolha **Colorido** ou **Branco**. Mudar de modo preserva os ajustes de ambos. Os botões **Ligar/Desligar** controlam a alimentação luminosa separadamente.
-3. No colorido, use a roda para Hue; saturação e brilho têm controles próprios. Campos numéricos aceitam vírgula ou ponto decimal; **Enter confirma**. Passos: 1° em Hue, 0,1% em S/V.
-4. Branco: 0% desliga; o mínimo confirmado é 1,0%, DPS22=10. Valores positivos menores são normalizados para 1,0%. O último brilho fica guardado quando desligada. Ajustar o brilho não liga automaticamente uma lâmpada desligada.
-5. Colorido: 0% envia V=0; 0,1% envia V=1. O liga/desliga permanece independente. Para tentar a menor emissão colorida positiva, use 0,1% e ligue a lâmpada.
-6. HEX e RGB definem os três componentes HSV juntos. Para preservar saturação e brilho, use Hue. A prévia representa RGB aproximado; não é uma medição da lâmpada.
-7. Temperatura usa 0–100% de quente a frio, com passo de 0,1%. Não se inventa um intervalo em kelvin.
-8. Salve presets locais com nome. Na seleção múltipla, os valores exibidos vêm da primeira lâmpada selecionada com estado conhecido; um ajuste isolado preserva os outros componentes de cada lâmpada. Presets aplicam o conjunto de ajustes, preservando liga/desliga.
-
-Os cartões mostram o estado efetivamente retornado. **Aguardando confirmação** não significa sucesso. Uma divergência exibe o solicitado e o recebido; falhas de rede pedem sincronização. **Sincronizar estado real** relê as selecionadas; não repete uma escrita falha. Para tentar novamente uma alteração, ajuste o controle outra vez. Também há consulta automática a cada 15 segundos.
-
-## Privacidade e preservação
-
-- Local Keys nunca são enviadas à interface, a logs, a presets ou a pacotes de distribuição.
-- `devices.json`, `tinytuya.json`, `tuya-raw.json`, `snapshot.json`, backups e ambiente virtual estão ignorados pelo Git; arquivos sensíveis existentes foram restringidos a modo 0600.
-- Nenhuma mudança de firmware, pareamento, conta Tuya, Google Home, cenas, timers ou memória de inicialização.
-- O auxiliar existe apenas durante o aplicativo. Ao fechar, conclui a última intenção pendente dentro de uma espera limitada e encerra; em falha da interface, recebe sinal de morte do processo pai.
-- Não use simultaneamente o painel antigo ou outro controlador LAN durante testes. Google Home e o aplicativo oficial podem alterar o estado externamente; a próxima sincronização reflete essa mudança.
-
-## Testes
-
-Sem alterar lâmpadas:
+## Testes e contribuição
 
 ```bash
 .venv/bin/python -m unittest discover -s tests -v
 cargo test --locked --manifest-path native/Cargo.toml
 ```
 
-Renderização real da janela, capturas e fechamento automático em cerca de 13 segundos, somente leituras LAN:
+Os testes automatizados usam dispositivos simulados. Testes físicos são separados, alteram temporariamente a iluminação e tentam restaurar o estado anterior:
 
 ```bash
-mkdir -p evidence
-ELGIN_SMOKE=1 native/target/release/elgin-smart-local
+.venv/bin/python scripts/verify_hardware.py --ip IP_DA_LAMPADA
 ```
 
-**Testes físicos alteram a iluminação**, uma lâmpada por vez, salvam os estados antes da primeira escrita e restauram no final. Execute somente quando puder tolerar a mudança breve:
+Registros e capturas em `evidence/` são locais e não são publicados. Ao abrir uma issue, informe sistema, versão e comportamento observado, removendo Local Keys, IDs, IPs e dados pessoais de qualquer diagnóstico. Para gerar os pacotes, consulte [packaging/README.md](packaging/README.md).
 
-```bash
-.venv/bin/python scripts/verify_hardware.py --all
-```
-
-Evidências são geradas localmente em `evidence/` e não são publicadas; detalhes e limites em [docs/TECHNICAL.md](docs/TECHNICAL.md) e resultados em [docs/VALIDATION.md](docs/VALIDATION.md). A granularidade foi confirmada por leitura dos DPS, sem medição fotométrica.
-
-## Arquivos e remoção
-
-- Fontes: `native/`, `bridge/`, `tests/`, `scripts/`.
-- Configuração de dispositivos: `devices.json` na raiz do seu checkout; nunca versionar. Na instalação original: `~/AI/elgin-smart/devices.json`.
-- Presets: `${XDG_CONFIG_HOME:-~/.config}/elgin-smart-local/presets.json`.
-- Instalação: `~/.local/lib/elgin-smart-local`, wrapper em `~/.local/bin`, ícone e launcher em `~/.local/share`.
-- Na instalação original, os arquivos do painel antigo e seus backups são preservados localmente, fora do repositório.
-
-Para remover apenas o aplicativo: `./scripts/uninstall.sh`. Projeto, credenciais e presets permanecem. Somente na instalação original, que preserva os arquivos legados, para voltar temporariamente ao painel antigo: `.venv/bin/uvicorn app:app --host 127.0.0.1 --port 8765`; encerre o aplicativo nativo antes e termine o servidor quando não precisar dele.
+O aplicativo utiliza [libcosmic](https://github.com/pop-os/libcosmic) e [TinyTuya](https://github.com/jasonacox/tinytuya). Os pacotes acompanham os avisos e licenças das dependências de terceiros.

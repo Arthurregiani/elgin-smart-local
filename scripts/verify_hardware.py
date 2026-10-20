@@ -3,11 +3,15 @@ import argparse,json,sys,time,signal
 from pathlib import Path
 BASE=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(BASE/'bridge'))
-from worker import Transport
+from worker import Transport, devices_path
 from core import state_from_dps
 
+def configured_devices():
+ data=json.loads(devices_path().read_text())
+ return data if isinstance(data,list) else data['devices']
+
 def run(ip):
- d=next(d for d in json.loads((BASE/'devices.json').read_text()) if d['ip']==ip)
+ d=next(d for d in configured_devices() if d['ip']==ip)
  t=Transport(d);original={k:v for k,v in t.read().items() if k in ('20','21','22','23','24')}
  report={'device':d['name'],'ip':ip,'protocol':d['version'],'original':original,'checks':[],'restored':False,'measurement':'DPS readback only; no photometer'}
  (BASE/'evidence').mkdir(exist_ok=True,mode=0o700)
@@ -46,5 +50,5 @@ if __name__=='__main__':
  group.add_argument('--ip',action='append',help='IP configurado; pode ser repetido')
  group.add_argument('--all',action='store_true',help='Testar todas as lâmpadas configuradas, sequencialmente')
  args=parser.parse_args()
- ips=[d['ip'] for d in json.loads((BASE/'devices.json').read_text())] if args.all else args.ip
+ ips=[d['ip'] for d in configured_devices()] if args.all else args.ip
  for ip in ips:run(ip)

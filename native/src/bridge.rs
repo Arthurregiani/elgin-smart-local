@@ -20,7 +20,20 @@ pub struct Bridge {
 }
 impl Bridge {
     pub fn start(base: &Path) -> Result<Self, String> {
-        let mut child = Command::new(base.join(".venv/bin/python"))
+        let python = std::env::var_os("ELGIN_PYTHON")
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|| {
+                if base.join("python").is_dir() {
+                    std::path::PathBuf::from("/usr/bin/python3")
+                } else {
+                    base.join(".venv/bin/python")
+                }
+            });
+        let mut command = Command::new(python);
+        if base.join("python").is_dir() {
+            command.env("PYTHONPATH", base.join("python"));
+        }
+        let mut child = command
             .arg("-u")
             .arg(base.join("bridge/worker.py"))
             .stdin(Stdio::piped())
@@ -28,7 +41,8 @@ impl Bridge {
             .stderr(Stdio::null())
             .spawn()
             .map_err(|_| {
-                "Não foi possível iniciar TinyTuya. Execute scripts/install.sh.".to_string()
+                "Não foi possível iniciar TinyTuya. Verifique a instalação e o Python 3.12."
+                    .to_string()
             })?;
         let input = child.stdin.take().unwrap();
         let output = child.stdout.take().unwrap();

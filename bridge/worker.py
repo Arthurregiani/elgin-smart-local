@@ -102,6 +102,15 @@ class Worker(threading.Thread):
             self.last=time.monotonic();self.next_poll=self.last+15
 
 
+def devices_path():
+    explicit=os.environ.get('ELGIN_DEVICES_FILE')
+    if explicit:return Path(explicit).expanduser()
+    legacy=BASE/'devices.json'
+    if legacy.is_file():return legacy
+    config=Path(os.environ.get('XDG_CONFIG_HOME',Path.home()/'.config'))
+    return config/'elgin-smart-local'/'devices.json'
+
+
 def main():
     # Kill/EOF handling prevents orphan helpers even if the GUI crashes.
     parent=os.getppid()
@@ -109,7 +118,7 @@ def main():
     if os.getppid()!=parent:return
     signal.signal(signal.SIGTERM,lambda *_:STOP.set())
     signal.signal(signal.SIGINT,lambda *_:STOP.set())
-    path=Path(os.environ.get('ELGIN_DEVICES_FILE',BASE/'devices.json')).expanduser()
+    path=devices_path()
     lockpath=Path(os.environ.get('XDG_RUNTIME_DIR','/tmp'))/f'elgin-smart-{os.getuid()}.lock'
     lock=open(lockpath,'w')
     try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
@@ -120,7 +129,7 @@ def main():
         devices=[d for d in data if all(d.get(k) for k in ('id','key','ip','version'))]
         if not devices:raise ValueError()
     except Exception:
-        emit(dict(event='fatal',message='Não foi possível carregar devices.json.'));return
+        emit(dict(event='fatal',message=f'Configure as lâmpadas em {path}. Use devices.example.json como modelo e informe IDs, IPs, versões e Local Keys.'));return
     workers=[Worker(i,d) for i,d in enumerate(devices)]
     emit(dict(event='devices',devices=[dict(index=i,name=d.get('name',f'Lâmpada {i+1}'),ip=d['ip'],version=str(d['version'])) for i,d in enumerate(devices)]))
     for w in workers:w.start()

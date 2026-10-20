@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Elgin Smart Local
+Comment=Controle de iluminação pela rede local
+Exec=/usr/bin/elgin-smart-local
+Icon=io.github.elgin.SmartLocal
+Terminal=false
+Categories=Utility;
+Keywords=Elgin;Tuya;Lâmpadas;Iluminação;RGB;COSMIC;
+StartupNotify=true
+StartupWMClass=io.github.elgin.SmartLocal
