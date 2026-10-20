@@ -54,7 +54,7 @@ chmod 600 ~/.config/elgin-smart-local/devices.json
 
 Edite o arquivo com o nome, Device ID, IP local, Local Key e versão do protocolo de cada lâmpada. O modelo contém apenas valores fictícios. A versão do protocolo deve corresponder ao dispositivo, por exemplo `3.4` ou `3.5`.
 
-Os IDs e Local Keys precisam estar disponíveis antes do uso. O aplicativo não faz pareamento nem extrai chaves. Consulte o [projeto TinyTuya](https://github.com/jasonacox/tinytuya) para orientações de obtenção dos dados. Mantenha o computador e as lâmpadas em uma rede que permita comunicação entre eles.
+Os IDs e Local Keys precisam estar disponíveis antes do uso. O aplicativo não faz pareamento nem extrai chaves. Siga o **[tutorial completo de configuração da Tuya Developer Platform e TinyTuya](docs/TUYA_SETUP.md)** para criar o projeto, vincular a conta, recuperar as chaves e solucionar problemas de QR Code. Mantenha o computador e as lâmpadas em uma rede que permita comunicação entre eles.
 
 Depois, abra **Elgin Smart Local** no launcher do COSMIC. Para a instalação por usuário, o modelo e os caminhos estão descritos no [guia](docs/INSTALL.md#instalação-por-usuário-targz).
 
